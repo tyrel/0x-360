@@ -1,0 +1,314 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Kernel Startup                  ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Count number of connected devices
+HWN Z
+
+SET I, 0
+:hwcount_iter
+HWQ I
+; compare to find out what kind of hardware it is
+
+; Check if this is the video
+IFN A, 0xf615
+SET PC, hwcount_checkkb
+IFN B, 0x7349
+SET PC, hwcount_checkkb
+; got video, set it up
+SET [video_interrupt], I
+SET PC, hwcount_donext
+
+; Check if this is the keyboard
+:hwcount_checkkb
+IFN A, 0x7406
+SET PC, hwcount_checkclock
+IFN B, 0x30cf
+SET PC, hwcount_checkclock
+; got keyboard
+SET [keyboard_interrupt], I
+SET PC, hwcount_donext
+
+; Check if this is the clock
+:hwcount_checkclock
+IFN A, 0xb402
+SET PC, hwcount_donext
+IFN B, 0x12d0
+SET PC, hwcount_donext
+; got clock
+SET [clock_interrupt], I
+
+:hwcount_donext
+ADD I, 1
+IFN I, Z ; end of the line
+    SET PC, hwcount_iter
+
+SET PC, begin
+
+:error
+SET PC, error
+
+:video_interrupt     DAT 0
+:keyboard_interrupt  DAT 0
+:clock_interrupt     DAT 0
+
+;================================
+:begin
+; set the video at 0xA000
+SET B, 0xA000
+SET A, 0
+HWI [video_interrupt]
+
+; print hellp message
+SET PUSH, str_hello
+JSR sub_print
+ADD SP, 1 ; pop str_hello
+
+; enable interrupts
+IAS interrupt
+
+; set clock ticks to 60 times per second
+; 60 = (60/1) , B = 1
+SET B, 1
+SET A, 0
+HWI [clock_interrupt]
+; enable clock interrupt
+SET B, 0x1111
+SET A, 2
+HWI [clock_interrupt]
+
+; enable keyboard interrupt
+SET B, 0x2222
+SET A, 3
+HWI [keyboard_interrupt]
+
+; End of the line
+SET PC, error
+
+
+;================================
+; Interrupt handler
+;================================
+:interrupt
+
+; pick out the interrupt
+IFE A, 0x1111
+  JSR clock_interrupt_handler
+IFE A, 0x2222
+  JSR keyboard_interrupt_handler
+; else unknown interrupt, oh well
+
+; end of handler, go back
+RFI 0
+
+; DATA SECTION
+:str_hello DAT "Please wait...", 0
+:str_tick DAT ".", 0
+
+; ==============================
+; Console Stuff
+; ==============================
+:cursor_row DAT 0
+:cursor_col DAT 0
+:current_color DAT 0xf000
+
+; ------------------------------
+; sub_print(word* message)
+; ------------------------------
+:sub_print
+SET PUSH, Z
+SET Z, SP
+SET PUSH, A
+SET PUSH, B
+SET PUSH, C
+SET PUSH, X
+SET PUSH, Y
+SET PUSH, I
+SET A, [Z+2]
+SET B, [cursor_row]
+SET C, [cursor_col]
+SET X, [current_color]
+:_print_next
+IFE [A], 0
+    SET PC, _print_done
+; put the char at [A] on the screen
+SET Y, B ; get row
+SHL Y, 5 ; * 32 (size of row)
+ADD Y, C ; plus column
+SET I, X
+BOR I, [A] ; apply color
+SET [Y+0xA000], I ; video memory offset
+ADD A, 1
+; move the cursor
+ADD C, 1
+IFL C, 32
+    SET PC, _print_next
+; column (C) is too big, wrap
+SUB C, 32
+ADD B, 1
+; scroll if B gets too big
+
+IFG B, 11
+  SET PC, _print_scroll
+
+SET PC, _print_next
+
+:_print_scroll
+SUB B, 1
+JSR scroll_screen
+
+SET PC, _print_next
+
+:_print_done
+; put stuff back where it came from
+SET [current_color], X
+SET [cursor_col], C
+SET [cursor_row], B
+SET I, POP
+SET Y, POP
+SET X, POP
+SET C, POP
+SET B, POP
+SET A, POP
+SET SP, Z
+SET Z, POP
+SET PC, POP ; return
+
+
+
+; ------------------------------
+; scroll_screen()
+; ------------------------------
+:scroll_screen
+SET PUSH, A
+SET PUSH, I
+SET PUSH, J
+
+; all we need to do is move 352 words starting with 0xA020 to 0xA000
+SET I, 0xA020
+SET J, 0xA000
+SET A, 352
+:_scroll_screen_next
+STI [J], [I]
+SUB A, 1
+IFE A, 0
+  SET PC, _scroll_screen_done
+SET PC, _scroll_screen_next
+
+:_scroll_screen_done
+
+; blank out the bottom row
+SET A, 32
+:_scroll_screen_blank_next
+STI [J], 0x0000
+SUB A, 1
+IFE A, 0
+  SET PC, _scroll_screen_blank_done
+SET PC, _scroll_screen_blank_next
+
+:_scroll_screen_blank_done
+
+; move the cursor up one row
+SET A, [cursor_row]
+SUB A, 1
+IFU A, 0
+  SET A, 0
+SET [cursor_row], A
+
+; clean up
+SET J, POP
+SET I, POP
+SET A, POP
+SET PC, POP ; return
+
+; ==============================
+; Number utilities
+; ==============================
+
+; ------------------------------
+; add_64_val_16(int64* val, word num)
+;
+; Add a 16-bit number to a 64-bit number
+; ------------------------------
+:add_64_val_16
+SET PUSH, Z
+SET Z, SP
+SET PUSH, A
+SET PUSH, B
+
+SET A, [Z+2] ; keep the pointer
+SET B, [A] ; grab first word (LSW)
+ADD B, [Z+3] ; initial add
+SET [A], B ; store
+
+SET B, [A+1] ; second word
+ADD B, EX
+SET [A+1], B ; store
+
+SET B, [A+2] ; third word
+ADD B, EX
+SET [A+2], B ; store
+
+SET B, [A+3] ; last word (MSW)
+ADD B, EX
+SET [A+3], B ; store
+
+SET B, POP
+SET A, POP
+SET SP, Z
+SET Z, POP
+SET PC, POP
+
+; ==============================
+; Clock Stuff
+; ==============================
+
+:clock_ticks DAT 0, 0, 0, 0 ; 64-bits
+
+; ------------------------------
+; clock_interrupt_handler()
+; ------------------------------
+:clock_interrupt_handler
+
+SET PUSH, 1
+SET PUSH, clock_ticks
+JSR add_64_val_16
+ADD SP, 2
+
+; TODO: run scheduler if we have one
+
+SET PC, POP ; return
+
+
+; ==============================
+; Keyboard Stuff
+; ==============================
+
+:str_keypress DAT 0, 0
+
+; ------------------------------
+; keyboard_interrupt_handler()
+; ------------------------------
+:keyboard_interrupt_handler
+SET PUSH, C
+SET PUSH, A
+
+; get keycode
+SET A, 1
+HWI [keyboard_interrupt]
+
+; keycode now in C
+IFG C, 0x7f
+  SET C, 0x3f ; ?
+IFL C, 0x20
+  SET C, 0x3f ; ?
+
+SET [str_keypress], C
+
+SET PUSH, str_keypress
+JSR sub_print
+ADD SP, 1
+
+SET A, POP
+SET C, POP
+SET PC, POP ; return
