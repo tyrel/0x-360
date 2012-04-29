@@ -5,5 +5,7 @@
     <file path="startup.10c" />
     <file path="console.10c" />
     <file path="numbers.10c" />
+    <file path="clock.10c" />
+    <file path="keyboard.10c" />
   </files>
 </project>

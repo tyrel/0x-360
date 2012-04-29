@@ -5,6 +5,80 @@
 :cursor_col DAT 0
 :current_color DAT 0xf000
 
+:color_palette
+;     gry     red     grn     blu
+DAT 0x0000, 0x0400, 0x0040, 0x0004 ; dark dark
+DAT 0x0888, 0x0800, 0x0080, 0x0008 ; dark
+DAT 0x0ccc, 0x0c00, 0x00c0, 0x000c ; light
+DAT 0x0fff, 0x0f00, 0x00f0, 0x000f ; light light
+
+; ------------------------------
+; set_palette
+; ------------------------------
+:set_palette
+SET PUSH, A
+SET PUSH, B
+
+SET A, 2
+SET B, color_palette
+HWI [video_interrupt]
+
+SET B, POP
+SET A, POP
+SET PC, POP
+
+; ------------------------------
+; set_bold(word yes)
+; ------------------------------
+:set_bold
+SET PUSH, Z
+SET Z, SP
+SET PUSH, A
+SET PUSH, B
+SET A, [Z+2]
+SET B, [current_color]
+
+IFN A, 0
+  SET PC, _set_bold_on
+
+; set bold off
+AND B, 0xcfff
+SET PC, _set_bold_done
+
+:_set_bold_on
+BOR B, 0x4000
+
+:_set_bold_done
+SET [current_color], B
+
+SET B, POP
+SET A, POP
+SET SP, Z
+SET Z, POP
+SET PC, POP
+
+; ------------------------------
+; clear_screen()
+; ------------------------------
+:clear_screen
+SET PUSH, A
+SET PUSH, I
+SET PUSH, J
+
+SET A, 0xA000
+SET [current_color], A
+BOR A, 0x0020
+SET I, 0xA000
+:_clear_screen_next
+STI [I], A
+IFL I, 0xA180
+  SET PC, _clear_screen_next
+
+SET J, POP
+SET I, POP
+SET A, POP
+SET PC, POP
+
 ; ------------------------------
 ; sub_print(word* message)
 ; ------------------------------
@@ -68,6 +142,27 @@ SET Z, POP
 SET PC, POP ; return
 
 
+; ------------------------------
+; linefeed_screen()
+; ------------------------------
+:linefeed_screen
+SET PUSH, B
+SET B, [cursor_row]
+ADD B, 1
+
+IFG B, 11
+  JSR _linefeed_scroll
+
+SET [cursor_row], B
+SET [cursor_col], 0
+
+SET B, POP
+SET PC, POP ; return
+
+:_linefeed_scroll
+JSR scroll_screen
+SUB B, 1
+SET PC, POP
 
 ; ------------------------------
 ; scroll_screen()

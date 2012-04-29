@@ -59,10 +59,24 @@ SET B, 0xA000
 SET A, 0
 HWI [video_interrupt]
 
-; print hellp message
-SET PUSH, str_hello
+JSR set_palette
+
+JSR clear_screen
+
+; print welcome message
+SET PUSH, str_starting
 JSR sub_print
-ADD SP, 1 ; pop str_hello
+ADD SP, 1
+
+JSR linefeed_screen
+
+SET PUSH, 1
+JSR set_bold
+ADD SP, 1
+
+SET PUSH, str_moment
+JSR sub_print
+ADD SP, 1
 
 ; enable interrupts
 IAS interrupt
@@ -104,59 +118,6 @@ IFE A, 0x2222
 RFI 0
 
 ; DATA SECTION
-:str_hello DAT "MYOS STARTING                   ONE MOMENT PLEASE...", 0
+:str_starting DAT "MYOS STARTING", 0
+:str_moment DAT "ONE MOMENT PLEASE...", 0
 
-
-; ==============================
-; Clock Stuff
-; ==============================
-
-:clock_ticks DAT 0, 0, 0, 0 ; 64-bits
-
-; ------------------------------
-; clock_interrupt_handler()
-; ------------------------------
-:clock_interrupt_handler
-
-SET PUSH, 1
-SET PUSH, clock_ticks
-JSR add_64_val_16
-ADD SP, 2
-
-; TODO: run scheduler if we have one
-
-SET PC, POP ; return
-
-
-; ==============================
-; Keyboard Stuff
-; ==============================
-
-:str_keypress DAT 0, 0
-
-; ------------------------------
-; keyboard_interrupt_handler()
-; ------------------------------
-:keyboard_interrupt_handler
-SET PUSH, C
-SET PUSH, A
-
-; get keycode
-SET A, 1
-HWI [keyboard_interrupt]
-
-; keycode now in C
-IFG C, 0x7f
-  SET C, 0x3f ; ?
-IFL C, 0x20
-  SET C, 0x3f ; ?
-
-SET [str_keypress], C
-
-SET PUSH, str_keypress
-JSR sub_print
-ADD SP, 1
-
-SET A, POP
-SET C, POP
-SET PC, POP ; return

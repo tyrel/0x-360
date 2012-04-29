@@ -1,0 +1,21 @@
+; ==============================
+; Keyboard Stuff
+; ==============================
+
+; ------------------------------
+; keyboard_interrupt_handler()
+; ------------------------------
+:keyboard_interrupt_handler
+SET PUSH, C
+SET PUSH, A
+
+; get keycode
+SET A, 1
+HWI [keyboard_interrupt]
+
+; keycode now in C
+; TODO: pass this to a task that's waiting for keyboard?
+
+SET A, POP
+SET C, POP
+SET PC, POP ; return

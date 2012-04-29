@@ -1,0 +1,21 @@
+; ==============================
+; Clock Stuff
+; ==============================
+
+:clock_ticks DAT 0, 0, 0, 0 ; 64-bits
+
+; ------------------------------
+; clock_interrupt_handler()
+; ------------------------------
+:clock_interrupt_handler
+
+SET PUSH, 1
+SET PUSH, clock_ticks
+JSR add_64_val_16
+ADD SP, 2
+
+; TODO: run scheduler if we have one
+
+SET PC, POP ; return
+
+
