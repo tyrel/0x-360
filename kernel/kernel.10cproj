@@ -7,5 +7,6 @@
     <file path="numbers.10c" />
     <file path="clock.10c" />
     <file path="keyboard.10c" />
+    <file path="memory.10c" />
   </files>
 </project>

@@ -45,6 +45,7 @@ IFN I, Z ; end of the line
 
 SET PC, begin
 
+:kernel_panic
 :error
 SET PC, error
 

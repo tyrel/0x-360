@@ -1,0 +1,95 @@
+; Memory map shall look like this:
+
+; +--------+--------+---------------------------------------------------+
+; | Offset | Length | Description                                       |
+; +========+========+===================================================+
+; |  0000  |   ?    | Kernel - length based on how much code I write    |
+; |  A000  |  0180  | Mapped video memory                               |
+; |  A180  |  0100  | Mapped font                                       |
+; |        |        |                                                   |
+; |  FFFF  |  -?    | Initial stack                                     |
+; +--------+--------+---------------------------------------------------+
+;
+; TODO: What do I need here?
+;    * Page allocator, so I can put a heaps and stacks for tasks.
+;    * How big should pages be? How many tasks might be run? 5-10?
+;        * If 10 tasks run, each with a heap and stack of same size,
+;          and we have roughly 64k words, available, could still have
+;          roughly 3,000 words for each of these. But a 1kw page seems
+;          like it would be big enough.
+;        * 1kw = 1024 words, 0x400 for each.
+;    * To map 0x400 our of 0x10000, we just need 0x40 (64) bits, as there
+;      would just be 64 total pages.
+;    * The initial bitmap would block out the known constants, kernel
+;      memory and video memory, and initial stack.
+;    * Let's let the kernel have 2 pages (2 kw = 4 kb) to start with. Can
+;      always increase later if needed.
+
+; Memory map format: low bits = low addresses, so if the first two pages
+;   are allocated, it'd be 00000011b or 0x0003
+:memory_map
+    DAT 0x0003  ; pages 0  thru 15 (0x0000 - 0x3fff) ; 2 pp for kernel
+    DAT 0x0000  ; pages 16 thru 31 (0x4000 - 0x7fff)
+    DAT 0x0100  ; pages 32 thru 47 (0x8000 - 0xbfff) ; 40th page is vid
+    DAT 0x8000  ; pages 48 thru 63 (0xc000 - 0xffff) ; last is stack
+
+; ------------------------------
+; memory_get_page
+; ------------------------------
+:memory_get_page
+; don't push A since it'll be return value
+SET PUSH, B
+SET PUSH, I
+SET PUSH, J
+SET PUSH, C
+
+SET A, memory_map
+SET I, 0
+:_memory_get_page_loop
+SET B, [A]
+IFE B, 0xffff
+  SET PC, _memory_get_page_trynext
+
+; we found a block of 16 pages which contains a free one
+; let's find it
+SET J, 0
+:_memory_page_innerloop
+IFB B, 1
+  SET PC, _memory_get_page_nextbit
+; found the bit
+; it's bit J of block I
+; reload the block
+SET B, [A]
+; make C represent the bit
+SET C, 1
+SHL C, J
+; set the bit in B
+BOR B, C
+; put it back in the map
+SET [A], B
+; calculate its address
+SET A, I
+MUL A, 0x4000
+SET B, J
+MUL B, 0x0400
+ADD A, B
+; jump to the end -- use A for return
+SET PC, _memory_get_page_end
+
+:_memory_get_page_nextbit
+ADD J, 1
+SHR B, 1
+SET PC, _memory_page_innerloop
+
+:_memory_get_page_trynext
+ADD I, 1
+IFE I, 4
+  JSR kernel_panic
+SET PC, _memory_get_page_loop
+
+:_memory_get_page_end
+SET C, POP
+SET J, POP
+SET I, POP
+SET B, POP
+SET PC, POP
