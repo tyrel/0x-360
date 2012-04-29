@@ -3,5 +3,7 @@
   <name>kernel</name>
   <files>
     <file path="startup.10c" />
+    <file path="console.10c" />
+    <file path="numbers.10c" />
   </files>
 </project>

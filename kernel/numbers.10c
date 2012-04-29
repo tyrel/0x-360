@@ -1,0 +1,38 @@
+; ==============================
+; Number utilities
+; ==============================
+
+; ------------------------------
+; add_64_val_16(int64* val, word num)
+;
+; Add a 16-bit number to a 64-bit number
+; ------------------------------
+:add_64_val_16
+SET PUSH, Z
+SET Z, SP
+SET PUSH, A
+SET PUSH, B
+
+SET A, [Z+2] ; keep the pointer
+SET B, [A] ; grab first word (LSW)
+ADD B, [Z+3] ; initial add
+SET [A], B ; store
+
+SET B, [A+1] ; second word
+ADD B, EX
+SET [A+1], B ; store
+
+SET B, [A+2] ; third word
+ADD B, EX
+SET [A+2], B ; store
+
+SET B, [A+3] ; last word (MSW)
+ADD B, EX
+SET [A+3], B ; store
+
+SET B, POP
+SET A, POP
+SET SP, Z
+SET Z, POP
+SET PC, POP
+
