@@ -6,5 +6,91 @@
 ; get an interrupt. So really we just need to store the stacks.
 ;
 ; Each thread gets its own stack, 1 page long.
-; We'll keep a list of threads in our stack.
+;
+; Max number of threads is 64, so to reduce complexity
+; we'll have just a blob of thread info in the heap.
+; Thread info is:
+;   * flags (1 word)
+;       bit 0:    allocated
+;       bits 1-2: 0 = running, 2 = blocked
+;   * stack pointer (1 word)
 
+:thread_info DAT 0
+:current_thread DAT 0
+
+; -----------------------------
+; setup_threading
+; -----------------------------
+:setup_threading
+SET PUSH, A
+SET PUSH, I
+SET PUSH, J
+
+; we need 2 * 64 = 128 words to store all the info
+SET PUSH, 128
+JSR heap_alloc
+ADD SP, 1
+SET [thread_info], A
+; first thread is us, we're allocated
+SET [A], 0x0001 ; allocated, running
+
+; Make sure it's all set to 0s
+SET I, A
+ADD A, 128
+:_heap_alloc_loop
+STI [I], 0
+IFE I, A
+  SET PC, _heap_alloc_done
+SET PC, _heap_alloc_loop
+
+:_heap_alloc_done
+SET J, POP
+SET I, POP
+SET A, POP
+SET PC, POP ; return
+
+; --------------------------------
+; create_thread(word PC)
+
+; Create a thread. It will start running at the specified
+; PC value. Good luck.
+; It will start running at some point in the future!
+; --------------------------------
+:create_thread
+SET PUSH, Z
+SET Z, SP ; save stack pointer
+
+; TODO: pick an available thread, using 1 for now
+SET A, 1 ; thread id
+SET I, [thread_info]
+ADD I, A
+ADD I, A ; *2 to get to the place
+SET [I], 0x0001 ; allocated, running
+ADD I, 1
+SET PUSH, A
+; get a page for the stack
+JSR memory_get_page
+; that's the beginning of the stack.. move to the end of it
+ADD A, 0x0400
+SET [I], A ; save it off
+SET A, POP
+
+; NOTE: we discard our own SP here, but it's saved in Z
+SET SP, [I] ; switch to their stack
+
+SET PUSH, [Z+2] ; PC
+SET PUSH, 0 ; A
+SET PUSH, 0 ; B
+SET PUSH, 0 ; C
+SET PUSH, 0 ; X
+SET PUSH, 0 ; Y
+SET PUSH, 0 ; Z
+SET PUSH, 0 ; I
+SET PUSH, 0 ; J
+SET PUSH, 0 ; EX
+
+SET [I], SP ; save their new stack pointer
+
+SET SP, Z ; restore our stack pointer
+SET Z, POP
+SET PC, POP ; return

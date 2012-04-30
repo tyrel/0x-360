@@ -1,0 +1,9 @@
+; Idle thread
+
+:idle_thread
+
+; TODO: would be nice if we could DO NOTHING here
+; TODO: sleep if we can?
+
+:_idle_boring
+SET PC, _idle_boring

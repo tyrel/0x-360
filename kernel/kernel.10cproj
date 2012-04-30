@@ -9,5 +9,6 @@
     <file path="keyboard.10c" />
     <file path="memory.10c" />
     <file path="thread.10c" />
+    <file path="idle.10c" />
   </files>
 </project>
