@@ -79,9 +79,6 @@ SET PUSH, str_moment
 JSR sub_print
 ADD SP, 1
 
-; enable interrupts
-IAS interrupt
-
 ; set clock ticks to 60 times per second
 ; 60 = (60/1) , B = 1
 SET B, 1
@@ -100,6 +97,11 @@ HWI [keyboard_interrupt]
 JSR set_font
 
 JSR heap_setup
+
+; TODO: start threading
+
+; enable interrupts
+IAS interrupt
 
 ; End of the line
 SET PC, error
