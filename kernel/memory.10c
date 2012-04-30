@@ -93,3 +93,116 @@ SET J, POP
 SET I, POP
 SET B, POP
 SET PC, POP
+
+
+
+;===============================
+; HEAP
+;===============================
+; The heap will contain a linked list of 
+; memory chunks. Each node indicates whether
+; the chunk it proceeds is available, and the
+; length of that chunk.
+; The format of the first word of a chunk
+; of the heap is thus:
+;  ALLLLLLL LLLLLLLL
+; Where the high bit indicates whether it is
+; available, and the rest is the length.
+;
+; By default, it is all available.
+;-------------------------------
+
+:heap_page DAT 0
+
+;-------------------------------
+; heap_setup()
+;-------------------------------
+:heap_setup
+SET PUSH, A
+
+JSR memory_get_page
+SET [heap_page], A
+
+; Entire heap is initially available.
+; Its full length is 0x400 (a page), but one of those words is
+; used for the header of it, so that is taken out to make 0x3ff
+SET [A], 0x83ff
+
+SET A, POP
+SET PC, POP ; return
+
+;------------------------------------
+; heap_alloc(word size)
+;------------------------------------
+:heap_alloc
+SET PUSH, Z
+SET Z, SP
+SET PUSH, B
+SET PUSH, X
+SET PUSH, Y
+
+; number of bytes wanted is in [Z+2]
+
+; loop through the blocks until we find one
+SET A, [heap_page]
+:_heap_alloc_loop
+SET B, [A]
+IFC B, 0x8000 ; not avalable
+  SET PC, _heap_alloc_next
+AND B, 0x7fff ; length only
+IFL B, [Z+2] ; too small
+  SET PC, _heap_alloc_next
+
+; available and big enough!
+SET PC, _heap_alloc_done
+
+:_heap_alloc_next
+; move to the next one
+AND B, 0x7fff ; length only
+ADD A, B
+ADD A, 1 ; address of next block
+; TODO: check if we're at the end!
+SET PC, _heap_alloc_loop
+
+:_heap_alloc_done
+; We get here if we found a place that's big enough
+; and available.
+; Optimization: if it's the EXACT size, we're good to go
+IFE [Z+2], B
+  SET PC, _heap_alloc_exact
+
+; It's bigger than we need, so we'll trim it.
+; To do so, we create a free block after it.
+
+; Create the new block. X is address, Y is size.
+SET X, A
+ADD X, [Z+2]
+ADD X, 1 ; plus heap info
+
+SET Y, B
+SUB Y, [Z+2]
+SUB Y, 1 ; plus heap info
+BOR Y, 0x8000 ; mark it available
+
+SET [X], Y ; Store it
+
+; Set the size of the found block to requested size.
+SET B, [Z+2]
+SET [A], B
+ADD A, 1 ; return A+1 (the start of the data)
+
+SET PC, _heap_alloc_cleanup
+
+:_heap_alloc_exact
+; B already has the length with the "available" removed
+SET [A], B
+; return A+1 (the start of the data)
+ADD A, 1
+
+:_heap_alloc_cleanup
+SET Y, POP
+SET X, POP
+SET B, POP
+SET SP, Z
+SET Z, POP
+SET PC, POP ; return
