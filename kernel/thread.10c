@@ -1,0 +1,10 @@
+; Threads are exciting
+;
+; A thread is represented by its state, which is simply its
+; stack and its registers.
+; But its registers can just be stored on its stack when we
+; get an interrupt. So really we just need to store the stacks.
+;
+; Each thread gets its own stack, 1 page long.
+; We'll keep a list of threads in our stack.
+
