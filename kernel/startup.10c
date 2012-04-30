@@ -99,6 +99,8 @@ HWI [keyboard_interrupt]
 
 JSR set_font
 
+JSR heap_setup
+
 ; End of the line
 SET PC, error
 
@@ -119,6 +121,17 @@ IFE A, 0x2222
 RFI 0
 
 ; DATA SECTION
-:str_starting DAT "MYOS STARTING", 0
+:str_starting
+DAT "      W E L C O M E   T O       "
+DAT "                                "
+DAT " 000          / 333   66   000  "
+DAT "0   0        /     3 6    0   0 "
+DAT "0 0 0 X X   /    33  666  0 0 0 "
+DAT "0   0  X   /       3 6  6 0   0 "
+DAT " 000  X X /     333   66   000  "
+DAT "                                "
+DAT "COPYRIGHT ab 1987               "
+DAT "INTERGALACTIC BUSINESS MACHINES "
+DAT 0
 :str_moment DAT "ONE MOMENT PLEASE...", 0
 
