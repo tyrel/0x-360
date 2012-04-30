@@ -2,10 +2,16 @@
 
 ## Introduction
 
+     000          / 333   66   000  
+    0   0        /     3 6    0   0 
+    0 0 0 X X   /    33  666  0 0 0 
+    0   0  X   /       3 6  6 0   0 
+     000  X X /     333   66   000  
+
 Intergalactic Business Machines, Inc. first introduced the 0x/360 for the
 DCPU-16 in 1985. As the leader in spacecraft control systems, Intergalactic
-Business Machines, Inc. continues to extend 0x/360 each year to meet the ever-
-changing demands of the industry.
+Business Machines, Inc. continues to extend 0x/360 each year to meet the
+ever-changing demands of the industry.
 
 ## Features
 
@@ -14,7 +20,9 @@ To be completed.
 ## Building
 
 0x/360 is built using the 0x10c DevKit, http://0x10c-devkit.com/
+
 Simply open the myos.10csln file in the root, and press the Build All button.
+
 It will probably also build with other assemblers.
 
 ## License
