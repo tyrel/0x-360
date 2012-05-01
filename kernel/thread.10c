@@ -17,6 +17,7 @@
 
 :thread_info DAT 0
 :current_thread DAT 0
+:highest_thread DAT 0
 
 ; -----------------------------
 ; setup_threading
@@ -37,13 +38,17 @@ SET [A], 0x0001 ; allocated, running
 ; Make sure it's all set to 0s
 SET I, A
 ADD A, 128
-:_heap_alloc_loop
+:_setup_thread_loop
 STI [I], 0
 IFE I, A
-  SET PC, _heap_alloc_done
-SET PC, _heap_alloc_loop
+  SET PC, _setup_thread_done
+SET PC, _setup_thread_loop
 
-:_heap_alloc_done
+:_setup_thread_done
+; the main system thread (0) needs to be marked as existing
+SET A, [thread_info]
+SET [A], 0x0001
+
 SET J, POP
 SET I, POP
 SET A, POP
@@ -62,6 +67,10 @@ SET Z, SP ; save stack pointer
 
 ; TODO: pick an available thread, using 1 for now
 SET A, 1 ; thread id
+
+IFG A, [highest_thread]
+  SET [highest_thread], A
+
 SET I, [thread_info]
 ADD I, A
 ADD I, A ; *2 to get to the place
@@ -93,4 +102,51 @@ SET [I], SP ; save their new stack pointer
 
 SET SP, Z ; restore our stack pointer
 SET Z, POP
+SET PC, POP ; return
+
+; ----------------------------
+; scheduler()
+; ----------------------------
+:scheduler
+SET PUSH, A
+SET PUSH, J
+SET PUSH, I
+
+SET A, [current_thread]
+SET I, [thread_info]
+ADD I, A
+ADD I, A
+SET J, A
+
+:_scheduler_got_current
+; ok, got current thead. info in [I], id in [J]
+; move to the next running thread
+ADD I, 2
+ADD J, 1
+
+IFG J, [highest_thread]
+  SET PC, _scheduler_wrap
+SET PC, _scheduler_nowrap
+
+:_scheduler_wrap
+SUB I, [highest_thread]
+SUB I, [highest_thread] ; twice cuz *2
+SUB I, 2
+SUB J, [highest_thread]
+SUB J, 1
+:_scheduler_nowrap
+
+SET A, [I] ; grab the thread info
+IFC A, 1 ; no thread here
+  SET PC, _scheduler_got_current
+AND A, 0x0006 ; get state
+IFN A, 0 ; not running
+  SET PC, _scheduler_got_current
+
+; we got here, we found a running thread
+SET [current_thread], J
+
+SET I, POP
+SET J, POP
+SET A, POP
 SET PC, POP ; return

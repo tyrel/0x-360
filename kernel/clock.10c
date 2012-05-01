@@ -14,7 +14,7 @@ SET PUSH, clock_ticks
 JSR add_64_val_16
 ADD SP, 2
 
-; TODO: run scheduler if we have one
+JSR scheduler
 
 SET PC, POP ; return
 
