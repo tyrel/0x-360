@@ -15,5 +15,67 @@
 ;
 render_main:
 
+JSR render_title
+
+JSR render_menu
+
 ; TODO: sleep a while
 SET PC, render_main
+
+render_title:
+SET PUSH, A
+SET PUSH, B
+SET PUSH, [cursor_col]
+SET PUSH, [cursor_row]
+SET PUSH, [current_color]
+
+SET [cursor_row], 0
+SET [cursor_col], 0
+SET [current_color], 0xe000
+
+; create stack space for a number
+SUB SP, 6
+SET A, SP
+SET PUSH, 10
+SET PUSH, A
+SET B, [clock_ticks]
+DIV B, 60
+SET PUSH, B
+JSR itoa
+ADD SP, 3
+
+SET PUSH, A
+JSR sub_print
+ADD SP, 1
+
+ADD SP, 6
+
+SET [current_color], POP
+SET [cursor_row], POP
+SET [cursor_col], POP
+
+SET B, POP
+SET A, POP
+SET PC, POP ; return
+
+
+render_menu:
+SET PUSH, [cursor_col]
+SET PUSH, [cursor_row]
+SET PUSH, [current_color]
+
+SET [cursor_row], 11
+SET [cursor_col], 0
+SET [current_color], 0x0e00
+
+SET PUSH, help
+JSR sub_print
+ADD SP, 1
+
+SET [current_color], POP
+SET [cursor_row], POP
+SET [cursor_col], POP
+
+SET PC, POP ; return
+; data
+.help: DAT "  HELP  ", 0
