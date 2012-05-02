@@ -17,6 +17,11 @@ ever-changing demands of the industry.
 
 To be completed.
 
+* Multi-threaded control system
+* Simple user interface (no command line)
+
+Screenshot of the booting screen: http://imgur.com/gBJsz
+
 ## Building
 
 0x/360 is built using the 0x10c DevKit, http://0x10c-devkit.com/
