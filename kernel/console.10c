@@ -73,7 +73,10 @@ SET I, 0xA000
 STI [I], A
 IFL I, 0xA180
   SET PC, _clear_screen_next
-
+ 
+SET [cursor_row], 0
+SET [cursor_col], 0
+ 
 SET J, POP
 SET I, POP
 SET A, POP
