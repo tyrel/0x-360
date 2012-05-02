@@ -64,9 +64,23 @@ SET PC, POP ; return
 :create_thread
 SET PUSH, Z
 SET Z, SP ; save stack pointer
+SET PUSH, B
 
-; TODO: pick an available thread, using 1 for now
-SET A, 1 ; thread id
+; pick an available thread id
+SET A, 0 ; thread id
+SET B, [thread_info]
+.loop_here:
+IFB [B], 1 ; occupied?
+  SET PC, try_next
+SET PC, got_one
+
+.try_next:
+ADD A, 1
+ADD B, 2
+SET PC, loop_here
+
+.got_one:
+SET B, POP ; done with that
 
 IFG A, [highest_thread]
   SET [highest_thread], A
