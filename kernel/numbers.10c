@@ -36,3 +36,57 @@ SET SP, Z
 SET Z, POP
 SET PC, POP
 
+; ------------------------------
+; itoa(word number, word* buffer, word base)
+;
+; Convert a 16-bit number to ASCII
+; Buffer should be at least 6 words long, as
+; the biggest number is 65535 plus a zero terminator.
+; ------------------------------
+itoa:
+SET PUSH, Z
+SET Z, SP
+SET PUSH, A
+SET PUSH, B
+SET PUSH, C
+SET PUSH, I
+
+SET A, temp ; A will be the offset into our output we'll print
+ADD A, 4 ; start at the end
+
+SET B, [Z+2] ; number
+SET C, [Z+4] ; base
+
+.another:
+SET I, B
+MOD I, C
+ADD I, ascii
+SET [A], [I]
+SUB A, 1
+DIV B, C
+IFE B, 0
+  SET PC, copyout
+SET PC, another
+
+.copyout:
+ADD A, 1 ; get back into the data
+SET B, [Z+3] ; output addr
+.copynext:
+SET [B], [A]
+IFE [A], 0
+  SET PC, alldone
+ADD A, 1
+ADD B, 1
+  SET PC, copynext
+
+.alldone:
+SET I, POP
+SET C, POP
+SET B, POP
+SET A, POP
+SET SP, Z
+SET Z, POP
+SET PC, POP
+;data
+.ascii: DAT "0123456789ABCDEF"
+.temp: DAT 0,0,0,0,0,0
