@@ -1,0 +1,19 @@
+; ====================================
+; MAIN SCREEN
+; ====================================
+; The main screen would look something like this:
+;
+;
+; ===============TITLE================
+; stuff goes here blah
+;
+;    blah:   blah
+;     hey:   foo
+;
+; MENU MENU MENU DOWN HERE
+;
+;
+render_main:
+
+; TODO: sleep a while
+SET PC, render_main

@@ -62,6 +62,8 @@ HWI [video_interrupt]
 
 JSR set_palette
 
+JSR set_font
+
 JSR clear_screen
 
 ; print welcome message
@@ -98,8 +100,6 @@ SET B, 0x2222
 SET A, 3
 HWI [keyboard_interrupt]
 
-JSR set_font
-
 JSR heap_setup
 
 JSR setup_threading
@@ -113,11 +113,15 @@ IAS interrupt
 
 ; TODO: any other startup stuff would go here
 
-; End of the line
-; TODO: End this thread
-:stop
-SET PC, stop
+; Wait at least until a "moment" has passed
+.sitting:
+IFL [clock_ticks], 180
+  SET PC, sitting
 
+JSR clear_screen
+
+; End of the line
+SET PC, render_main
 
 ;================================
 ; Interrupt handler

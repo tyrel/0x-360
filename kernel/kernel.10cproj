@@ -10,5 +10,6 @@
     <file path="memory.10c" />
     <file path="thread.10c" />
     <file path="idle.10c" />
+    <file path="mainscreen.10c" />
   </files>
 </project>
