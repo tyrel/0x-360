@@ -13,6 +13,8 @@
 ; MENU MENU MENU DOWN HERE
 ;
 ;
+main_sel: DAT 0
+
 render_main:
 
 JSR render_title
@@ -22,16 +24,22 @@ JSR render_menu
 ; TODO: sleep a while
 SET PC, render_main
 
+; -------------------------------------------
 render_title:
 SET PUSH, A
 SET PUSH, B
+SET PUSH, C
 SET PUSH, [cursor_col]
 SET PUSH, [cursor_row]
 SET PUSH, [current_color]
 
 SET [cursor_row], 0
 SET [cursor_col], 0
-SET [current_color], 0xe000
+SET [current_color], 0x0600
+
+SET PUSH, [titletext]
+JSR sub_print
+ADD SP, 1
 
 ; create stack space for a number
 SUB SP, 6
@@ -39,8 +47,25 @@ SET A, SP
 SET PUSH, 10
 SET PUSH, A
 SET B, [clock_ticks]
-DIV B, 60
+DIV B, 60 ; to seconds
+SET C, B
+DIV B, 60 ; to minutes
+MOD C, 60 ; keep seconds
 SET PUSH, B
+JSR itoa
+ADD SP, 3
+
+SET PUSH, A
+JSR sub_print
+ADD SP, 1
+
+SET PUSH, colon
+JSR sub_print
+ADD SP, 1
+
+SET PUSH, 10
+SET PUSH, A
+SET PUSH, C
 JSR itoa
 ADD SP, 3
 
@@ -50,25 +75,12 @@ ADD SP, 1
 
 ADD SP, 6
 
-SET [current_color], POP
-SET [cursor_row], POP
-SET [cursor_col], POP
 
-SET B, POP
-SET A, POP
-SET PC, POP ; return
+SET B, titleend
+SUB B, 24
+ADD B, [cursor_col]
 
-
-render_menu:
-SET PUSH, [cursor_col]
-SET PUSH, [cursor_row]
-SET PUSH, [current_color]
-
-SET [cursor_row], 11
-SET [cursor_col], 0
-SET [current_color], 0x0e00
-
-SET PUSH, help
+SET PUSH, B
 JSR sub_print
 ADD SP, 1
 
@@ -76,6 +88,120 @@ SET [current_color], POP
 SET [cursor_row], POP
 SET [cursor_col], POP
 
+SET C, POP
+SET B, POP
+SET A, POP
 SET PC, POP ; return
 ; data
-.help: DAT "  HELP  ", 0
+.main: DAT "cMAIN                    ", 0
+.titleend: DAT "       d", 0
+.colon: DAT ":", 0
+.titletext: DAT main
+
+; -------------------------------------------
+render_menu:
+SET PUSH, [cursor_col]
+SET PUSH, [cursor_row]
+SET PUSH, [current_color]
+SET PUSH, A
+
+SET [cursor_row], 11
+SET [cursor_col], 1
+SET [current_color], 0x0600
+
+SET A, 0
+JSR drawedge1
+SET PUSH, home
+JSR sub_print
+ADD SP, 1
+JSR drawedge2
+
+SET A, 1
+JSR drawedge1
+SET PUSH, status
+JSR sub_print
+ADD SP, 1
+JSR drawedge2
+
+SET A, 2
+JSR drawedge1
+SET PUSH, navigation
+JSR sub_print
+ADD SP, 1
+JSR drawedge2
+
+SET A, 3
+JSR drawedge1
+SET PUSH, weapons
+JSR sub_print
+ADD SP, 1
+JSR drawedge2
+
+SET A, 4
+JSR drawedge1
+SET PUSH, blank
+JSR sub_print
+ADD SP, 1
+JSR drawedge2
+
+SET A, POP
+SET [current_color], POP
+SET [cursor_row], POP
+SET [cursor_col], POP
+
+SET PC, POP ; return
+; data
+.sel: DAT 0x1
+.home: DAT "HOME", 0
+.status: DAT "STAT", 0
+.navigation: DAT "NAVI", 0
+.weapons: DAT "WEAP", 0
+.blank: DAT "    ", 0
+
+.drawedge1:
+SET PUSH, B
+SET PUSH, A
+
+SET B, ' '
+IFE A, [sel]
+  SET B, '<'
+
+SET [current_color], 0x0600
+IFE A, [sel]
+  SET [current_color], 0x0a00
+
+BOR B, [current_color]
+
+SET A, 11
+SHL A, 5
+ADD A, [cursor_col]
+ADD A, 0xA000
+SET [A], B
+
+ADD [cursor_col], 1
+
+SET A, POP
+SET B, POP
+SET PC, POP
+
+.drawedge2:
+SET PUSH, B
+SET PUSH, A
+
+SET B, ' '
+IFE A, [sel]
+  SET B, '>'
+
+BOR B, [current_color]
+
+SET A, 11
+SHL A, 5
+ADD A, [cursor_col]
+ADD A, 0xA000
+SET [A], B
+
+ADD [cursor_col], 1
+
+SET A, POP
+SET B, POP
+SET PC, POP
