@@ -11,5 +11,6 @@
     <file path="thread.10c" />
     <file path="idle.10c" />
     <file path="mainscreen.10c" />
+    <file path="crypto.10c" />
   </files>
 </project>

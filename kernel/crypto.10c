@@ -1,0 +1,191 @@
+; DCPU crypto -- by Tyrel Haveman (Computerizer)
+;
+
+
+#macro crypto_doinner() {
+	SET PUSH, A
+	SET PUSH, C
+	; v = SP+9
+	; n = SP+8
+	; key = SP+7
+
+    ;uint32_t y, z, sum;
+    ;unsigned p, rounds, e;
+    ; y = SP+6
+    ; z = SP+5
+    ; sum = SP+4
+    ; p = SP+3
+    ; rounds = SP+2
+    ; e = SP+1
+
+
+	; A = z >> 5
+	SET A, [SP+5]
+	SHR A, 5
+	; B = y << 2
+	SET B, [SP+6]
+	SHL B, 2
+	; A = A ^ B
+	XOR A, B
+	;
+	; B = y >> 3
+	SET B, [SP+6]
+	SHR B, 3
+	; C = z << 4
+	SET C, [SP+5]
+	SHL C, 4
+	; B = B ^ C
+	XOR B, C
+	; A = A + B
+	ADD A, B
+	;
+	; B = p & 3
+	SET B, [SP+3]
+	AND B, 3
+	; B = B ^ e
+	XOR B, [SP+1]
+	; B += key
+	ADD B, [SP+7]
+	; B = [B]
+	SET B, [B]
+	;
+	; B = B ^ z
+	XOR B, [SP+5]
+	;
+	; C = sum
+	SET C, [SP+4]
+	; C = C ^ y
+	XOR C, [SP+6]
+	;
+	; B = B + C
+	ADD B, C
+	; A = A ^ B
+	XOR A, B
+	
+	SET B, A
+	SET C, POP
+	SET A, POP
+}
+
+
+; encrypt:
+;   inputs: A = address of data to encrypt
+;           B = number of words to encrypt
+;           C = address of key (4 words)
+; Encrypts the data in A (overwrites it).
+;
+encrypt:
+	SET PUSH, A
+	SET PUSH, B
+	SET PUSH, C
+	
+	; v = SP+9
+	; n = SP+8
+	; key = SP+7
+
+    ;uint32_t y, z, sum;
+    ;unsigned p, rounds, e;
+    SUB SP, 6
+    ; y = SP+6
+    ; z = SP+5
+    ; sum = SP+4
+    ; p = SP+3
+    ; rounds = SP+2
+    ; e = SP+1
+
+    ;rounds = 6 + 52/n;
+	SET A, 52
+	DIV A, [SP+8]
+	ADD A, 6
+	SET [SP+2], A
+	
+	;sum = 0;
+	SET [SP+4], 0
+
+	;z = v[n-1];
+	SET A, [SP+9]
+	ADD A, [SP+8]
+	SUB A, 1
+	SET [SP+5], A
+	
+    ;do {
+    .repeat:
+    
+        ;sum += DELTA;
+        ADD [SP+4], 0x9eb9
+        
+        ;e = (sum >> 2) & 3;
+        SET A, [SP+4]
+        SHR A, 2
+        AND A, 3
+        SET [SP+1], A
+        
+        ;for (p=0; p<n-1; p++) {
+        SET [SP+3], 0
+        .morefor:
+        SET A, [SP+8]
+        SUB A, 1
+        IFL [SP+3], A
+          SET PC, infor
+        SET PC, donefor
+        .infor:
+        
+          ;y = v[p+1]; 
+          SET A, [SP+3]
+          ADD A, 1
+          ADD A, [SP+9]
+          SET [SP+6], [A]
+          
+          ;z = v[p] += MX;
+          SET A, [SP+3]
+          ADD A, [SP+9]
+          
+          crypto_doinner
+          
+          ADD [A], B
+          
+          SET [SP+5], [A]
+
+          ADD [SP+3], 1 ; the p++ from the for loop
+          SET PC, morefor
+        ;}
+        .donefor:
+        
+        ;y = v[0];
+        SET [SP+6], [SP+9]
+        
+        ;z = v[n-1] += MX;
+        SET A, [SP+9]
+        ADD A, [SP+8]
+        SUB A, 1
+        
+        crypto_doinner ; answer in B
+        
+        ADD [A], B
+        
+        SET [SP+5], [A]
+        
+	;} while (--rounds);
+    SUB [SP+2], 1
+    IFN [SP+2], 0
+        SET PC, repeat
+
+	SET C, POP
+	SET B, POP
+	SET A, POP
+	SET PC, POP
+
+
+; decrypt will be
+      ;rounds = 6 + 52/n;
+      ;sum = rounds*DELTA;
+      ;y = v[0];
+      ;do {
+        ;e = (sum >> 2) & 3;
+        ;for (p=n-1; p>0; p--) {
+          ;z = v[p-1];
+          ;y = v[p] -= MX;
+        ;}
+        ;z = v[n-1];
+        ;y = v[0] -= MX;
+      ;} while ((sum -= DELTA) != 0);
