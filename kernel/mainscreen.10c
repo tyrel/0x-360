@@ -162,9 +162,7 @@ SET PC, POP ; return
 SET PUSH, B
 SET PUSH, A
 
-SET B, ' '
-IFE A, [sel]
-  SET B, '<'
+SET B, 'c'
 
 SET [current_color], 0x0600
 IFE A, [sel]
@@ -188,9 +186,7 @@ SET PC, POP
 SET PUSH, B
 SET PUSH, A
 
-SET B, ' '
-IFE A, [sel]
-  SET B, '>'
+SET B, 'd'
 
 BOR B, [current_color]
 
