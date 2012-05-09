@@ -104,46 +104,35 @@ SET PUSH, [cursor_col]
 SET PUSH, [cursor_row]
 SET PUSH, [current_color]
 SET PUSH, A
+SET PUSH, B
 
 SET [cursor_row], 11
 SET [cursor_col], 1
 SET [current_color], 0x0600
 
 SET A, 0
-JSR drawedge1
-SET PUSH, home
-JSR sub_print
-ADD SP, 1
-JSR drawedge2
+SET B, menuinfo
 
-SET A, 1
+.nextmenu:
 JSR drawedge1
-SET PUSH, status
-JSR sub_print
-ADD SP, 1
-JSR drawedge2
 
-SET A, 2
-JSR drawedge1
-SET PUSH, navigation
-JSR sub_print
-ADD SP, 1
-JSR drawedge2
-
-SET A, 3
-JSR drawedge1
-SET PUSH, weapons
-JSR sub_print
-ADD SP, 1
-JSR drawedge2
-
-SET A, 4
-JSR drawedge1
+IFE [B], 0
+  SET PC, blankone
+SET PUSH, [B]
+SET PC, doneone
+.blankone:
 SET PUSH, blank
+.doneone:
 JSR sub_print
 ADD SP, 1
 JSR drawedge2
 
+ADD A, 1
+ADD B, 2
+IFL A, 5
+  SET PC, nextmenu
+
+SET B, POP
 SET A, POP
 SET [current_color], POP
 SET [cursor_row], POP
@@ -151,12 +140,15 @@ SET [cursor_col], POP
 
 SET PC, POP ; return
 ; data
-.sel: DAT 0x1
+.sel: DAT 0
 .home: DAT "HOME", 0
-.status: DAT "STAT", 0
-.navigation: DAT "NAVI", 0
-.weapons: DAT "WEAP", 0
 .blank: DAT "    ", 0
+
+.menuinfo DAT home, menu_select_home
+    DAT 0, 0
+    DAT 0, 0
+    DAT 0, 0
+    DAT 0, 0
 
 .drawedge1:
 SET PUSH, B
@@ -200,4 +192,9 @@ ADD [cursor_col], 1
 
 SET A, POP
 SET B, POP
+SET PC, POP
+
+; ----------------------
+menu_select_home:
+; TODO: something
 SET PC, POP
